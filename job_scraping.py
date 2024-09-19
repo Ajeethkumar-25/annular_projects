@@ -102,9 +102,10 @@ def job_scraping_task():
     logging.info("Job scraping task executed.")
 
 # Schedule the job to run daily at a specific time 
-schedule.every().day.at("22:35").do(job_scraping_task)
+# schedule.every().day.at("22:35").do(job_scraping_task)
+schedule.every(10).minutes..do(job_scraping_task)
 
-logging.info("Scheduler started. Job scraping will run daily at 22:35.")
+logging.info("Scheduler started. Job scraping will run daily .")
 
 def send_email(file_path):
     # Email configuration
