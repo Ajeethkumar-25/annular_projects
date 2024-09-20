@@ -33,7 +33,16 @@ def send_email(file_path):
     msg['Subject'] = f"LinkedIn Jobs Data - {datetime.now().strftime('%Y-%m-%d')}"
 
     # Email body
-    body = "Attached is the LinkedIn jobs data."
+    body = body = """
+    Hi Team Annular,
+        Here I am attached the LINKEDIN scraped jobs Excel file for 20-09-2024.
+    Kindly review it.
+    
+    Thanks & Regards,
+    Ajeethkumar Muruganandham,
+    Data Engineer.
+    """
+
     msg.attach(MIMEText(body, 'plain'))
 
     # Attach the Excel file
