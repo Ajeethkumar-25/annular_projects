@@ -103,7 +103,7 @@ def job_scraping_task():
 
 # Schedule the job to run daily at a specific time 
 # schedule.every().day.at("22:35").do(job_scraping_task)
-schedule.every(10).minutes..do(job_scraping_task)
+schedule.every(10).minutes.do(job_scraping_task)
 
 logging.info("Scheduler started. Job scraping will run daily .")
 
