@@ -22,14 +22,14 @@ def send_email(file_path):
     smtp_password = os.getenv('SMTP_PASSWORD', 'abgv wqyt vllf fclm')  # App-specific password
 
     from_email = smtp_user
-    to_email = 'ajeethkumar@annulartechnologies.com'
-    cc_email = 'praveen.lc@annulartechnologies.com'
+    to_email = "ajeethkumar@annulartechnologies.com"
+    cc_email = ["praveen.lc@annulartechnologies.com", "selva@annulartechnologies.com", "sriram@annulartechnologies.com", "skumaran@annulartechnologies.com"]
 
     # Create the email
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
-    msg['Cc'] = cc_email
+    msg['Cc'] = ",".join(cc_email)
     msg['Subject'] = f"LinkedIn Jobs Data - {datetime.now().strftime('%Y-%m-%d')}"
 
     # Email body
