@@ -93,7 +93,7 @@ def on_end():
     df.drop_duplicates(subset='Job Link', keep='first', inplace=True)
     
     df.to_excel(file_path, index=False)
-    print(f"Data saved to 'linkedin_job_1{current_date}.xlsx'")
+    print(f"Data saved to 'linkedin_job_2_{current_date}.xlsx'")
 
     # Send the email with the file attachment
     send_email(file_path)
