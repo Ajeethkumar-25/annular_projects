@@ -16,9 +16,28 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
+# Set up Chrome options
+options = Options()
+options.add_argument('--headless')
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
+options.add_argument('--remote-debugging-port=9222')
+options.add_argument('--disable-gpu')
+options.add_argument('--window-size=1920,1080')
+options.add_argument('--start-maximized')
+
+# Initialize the WebDriver
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+
 
 # Store job data
 jobs_data = []
@@ -31,23 +50,30 @@ salary_pattern = r'₹\s?\d+(?:,\d{3})(?:\.\d{1,2})?|INR\s?\d+(?:,\d{3})*(?:\.\d
 experience_pattern = r'(\d+)[-\s](\d)\+?\s*years?'
 
 # Skills list and pattern
-skills_list = ['Python', 'Java', 'JavaScript', 'C#', 'Ruby', 'PHP', 'C\+\+', 'Go', 'Node\.js', 'Scala',
-    'Spring', 'Hibernate', 'Django', 'Flask', 'Express', 'ASP\.NET', 'RESTful', 'GraphQL',
+skills_list = [
+    'Python', 'Java', 'JavaScript', 'C#', 'Ruby', 'PHP', 'C\\+\\+', 'Go', 'Node\\.js', 'Scala',
+    'Spring', 'Hibernate', 'Django', 'Flask', 'Express', 'ASP\\.NET', 'RESTful', 'GraphQL',
     'SQL', 'NoSQL', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'ElasticSearch', 'Docker',
     'Kubernetes', 'AWS', 'Azure', 'Google Cloud', 'CI/CD', 'Jenkins', 'Git', 'GraphQL',
-    'Apache Kafka', 'RabbitMQ', 'Nginx', 'Redis', 'Memcached', 'Microservices', 'DevOps','Selenium', 
+    'Apache Kafka', 'RabbitMQ', 'Nginx', 'Redis', 'Memcached', 'Microservices', 'DevOps', 'Selenium',
+    
     # Mobile Development
     'Java', 'Kotlin', 'Swift', 'Objective-C', 'Flutter', 'React Native', 'Xamarin', 'Android SDK',
     'iOS SDK', 'UIKit', 'Jetpack Compose', 'Core Data', 'Realm', 'Firebase', 'Android Jetpack',
     'RxJava', 'Dagger', 'MVP', 'MVVM', 'RESTful APIs', 'GraphQL', 'Push Notifications',
 
     # Web Development
-    'HTML', 'CSS', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue\.js', 'SASS', 'LESS',
-    'Bootstrap', 'Tailwind CSS', 'Webpack', 'Gulp', 'Parcel', 'JQuery', 'Node\.js', 'Express',
-    'Next\.js', 'Gatsby', 'Nuxt\.js', 'Server-Side Rendering', 'Progressive Web Apps', 'Single Page Applications'
-    ]
+    'HTML', 'CSS', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue\\.js', 'SASS', 'LESS',
+    'Bootstrap', 'Tailwind CSS', 'Webpack', 'Gulp', 'Parcel', 'JQuery', 'Node\\.js', 'Express',
+    'Next\\.js', 'Gatsby', 'Nuxt\\.js', 'Server-Side Rendering', 'Progressive Web Apps', 'Single Page Applications'
+]
 
-skills_pattern = r'(?i)\b(?:' + '|'.join(skills_list) + r')\b'
+# Escape backslashes and create raw strings
+escaped_skills_list = [skill.replace('\\', '\\\\') for skill in skills_list]
+
+# Create the skills_pattern
+skills_pattern = r'(?i)\b(?:' + '|'.join(escaped_skills_list) + r')\b'
+
 
 # Random user agents for Google search
 USER_AGENTS = [
@@ -173,20 +199,16 @@ def on_end():
     df = pd.DataFrame(jobs_data)
     df.drop_duplicates(subset='Job Link', keep='first', inplace=True)
     file_path = f'C:/Users/Intern/Desktop/linkedin_excel_/LinkedIn_jobs_today_2_{current_date}.xlsx'
+    # send_email(file_path)
     df.to_excel(file_path, index=False)
-
-    # print(f"Data saved to '{file_path}'")
-    # Call the send_email function
-    try:
-        send_email(file_path)
-    except Exception as e:
-        logging.error(f"Error sending email: {e}")
+    print(f"Data saved to '{file_path}'")
 
 
 # LinkedIn Scraper setup
 scraper = LinkedinScraper(
     chrome_executable_path=None,
     chrome_binary_location=None,
+    chrome_options=options,
     headless=True,
     max_workers=1,
     slow_mo=3,
@@ -198,282 +220,282 @@ scraper.on(Events.ERROR, on_error)
 scraper.on(Events.END, on_end)
 
 queries = [
-    Query(
-        query='BACK-END DEVELOPMENT',
-        options=QueryOptions( 
-            locations=['India'],
-            apply_link=False,
-            skip_promoted_jobs=True,
-            limit=2,
-            filters=QueryFilters(
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT, TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE, ExperienceLevelFilters.MID_SENIOR]
-            )
-        )
-    ),
-    Query(
-        query='BACKEND DEVELOPEMENT',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='BACK END DEVELOMENT',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='BACK-END DEVELOPER',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.PART_TIME, TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='BACKEND DEVELOPER',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='BACK END DEVELOPER',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.PART_TIME, TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='JAVA BACKEND DEVELOPER',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.PART_TIME, TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='CORE JAVA DEVELOPER',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='JAVA CORE DEVELOPER',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='JAVA DEVELOPER',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='MICROSERVICES',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='SPRINGBOOT',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='SPRINGBOOT DEVELOPER',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
-    Query(
-        query='SPRING',
-        options=QueryOptions( 
-            locations=['INDIA'],
-            apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
-            skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
-            page_offset=0,  # How many pages to skip
-            limit=2,
-            filters=QueryFilters(
-                company_jobs_url=None,  # Filter by companies.                
-                relevance=RelevanceFilters.RELEVANT,
-                time=TimeFilters.DAY,
-                type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
-                on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
-                experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
-                base_salary=None,
-                industry = None
-            )
-        )
-    ),
+    # Query(
+    #     query='BACK-END DEVELOPMENT',
+    #     options=QueryOptions( 
+    #         locations=['India'],
+    #         apply_link=False,
+    #         skip_promoted_jobs=True,
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT, TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE, ExperienceLevelFilters.MID_SENIOR]
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='BACKEND DEVELOPEMENT',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='BACK END DEVELOMENT',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='BACK-END DEVELOPER',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.PART_TIME, TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='BACKEND DEVELOPER',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='BACK END DEVELOPER',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.PART_TIME, TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='JAVA BACKEND DEVELOPER',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.PART_TIME, TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='CORE JAVA DEVELOPER',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='JAVA CORE DEVELOPER',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='JAVA DEVELOPER',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='MICROSERVICES',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='SPRINGBOOT',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='SPRINGBOOT DEVELOPER',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
+    # Query(
+    #     query='SPRING',
+    #     options=QueryOptions( 
+    #         locations=['INDIA'],
+    #         apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
+    #         skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
+    #         page_offset=0,  # How many pages to skip
+    #         limit=2,
+    #         filters=QueryFilters(
+    #             company_jobs_url=None,  # Filter by companies.                
+    #             relevance=RelevanceFilters.RELEVANT,
+    #             time=TimeFilters.DAY,
+    #             type=[TypeFilters.CONTRACT,TypeFilters.TEMPORARY],
+    #             on_site_or_remote=OnSiteOrRemoteFilters.REMOTE,
+    #             experience=[ExperienceLevelFilters.ASSOCIATE,ExperienceLevelFilters.MID_SENIOR],
+    #             base_salary=None,
+    #             industry = None
+    #         )
+    #     )
+    # ),
     Query(
         query='SPRING DEVELOPER',
         options=QueryOptions( 
@@ -481,7 +503,7 @@ queries = [
             apply_link=False,  # Try to extract apply link (easy applies are skipped). If set to True, scraping is slower because an additional page must be navigated. Default to False.
             skip_promoted_jobs=False,  # Skip promoted jobs. Default to False.
             page_offset=0,  # How many pages to skip
-            limit=2,
+            limit=10,
             filters=QueryFilters(
                 company_jobs_url=None,  # Filter by companies.                
                 relevance=RelevanceFilters.RELEVANT,
@@ -495,18 +517,9 @@ queries = [
         )
     )
 ]
-scraper.run(queries)
+scraper.run(queries) 
 
 # Function to send email with job data as attachment
-
-import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
-import logging
-from datetime import datetime
-
 def send_email(file_path):
     # Email configuration
     smtp_server = 'smtp.gmail.com'
@@ -526,9 +539,9 @@ def send_email(file_path):
     body = """Hi Team, 
         Here I am attached is the LinkedIn jobs data, So kindly review it.
     
-    Thanks & Regards,
-    Ajeethkumar[Data Engineer], 
-    Praveen LC[Data Engineer]
+Thanks & Regards,
+Ajeethkumar[Data Engineer], 
+Praveen LC[Data Engineer]
     """
     msg.attach(MIMEText(body, 'plain'))
 
@@ -539,7 +552,7 @@ def send_email(file_path):
             part['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
             msg.attach(part)
     except Exception as e:
-        logging.error(f"Failed to attach the file: {e}")
+        print(f"Failed to attach the file: {e}")
         return
 
     try:
@@ -547,10 +560,11 @@ def send_email(file_path):
             server.starttls()  # Secure the connection
             server.login(smtp_user, smtp_password)
             server.sendmail(from_email, to_email, msg.as_string())
-            logging.info(f"Email sent to {to_email} with the attachment {os.path.basename(file_path)}")
+            print(f"Email sent to {to_email} with the attachment {os.path.basename(file_path)}")
     except Exception as e:
-        logging.error(f"Failed to send email: {e}")
-    
-# Example function call for demonstration
-if __name__ == '__main__':
-    on_end()
+        print(f"Failed to send email: {e}")
+if __name__ == "__main__":
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    send_email(file_path = f'C:/Users/Intern/Desktop/linkedin_excel_/LinkedIn_jobs_today_2_{current_date}.xlsx')
+
+
