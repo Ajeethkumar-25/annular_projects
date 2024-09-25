@@ -19,10 +19,23 @@ from email.mime.application import MIMEApplication
 from selenium import webdriver  
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+import platform
+current_os = platform.system()
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
+
+
+# Set WebDriver path and file paths based on the operating system
+if current_os == "Windows":
+    webdriver_path = "C:/Users/Intern/Desktop/chromedriver-win64/chromedriver.exe"
+    base_file_path = "C:/Users/Intern/Desktop/linkedin_excel_/"
+elif current_os == "Linux":
+    webdriver_path = "/usr/bin/chromedriver"
+    base_file_path = "/home/ajeeth/annular_projects/"
+else:
+    raise Exception(f"Unsupported operating system: {current_os}")
+
 # Set up Chrome options
 chrome_options = Options()
 chrome_options.add_argument('--headless')
@@ -33,8 +46,8 @@ chrome_options.add_argument('--disable-dev-shm-usage')
 # options.add_argument('--window-size=1920,1080')
 # options.add_argument('--start-maximized')
 
-# Initialize the WebDriver
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+# Initialize the WebDriver with the correct path based on the OS
+driver = webdriver.Chrome(service=Service(webdriver_path), options=chrome_options)
 driver.get("https://www.google.com/login")
 driver.set_page_load_timeout(30)  # Increase page load timeout
 
@@ -204,10 +217,14 @@ def on_end():
     current_date = datetime.now().strftime('%Y-%m-%d')
     df = pd.DataFrame(jobs_data)
     df.drop_duplicates(subset='Job Link', keep='first', inplace=True)
-    file_path = f'C:/Users/Intern/Desktop/linkedin_excel_/LinkedIn_jobs_today_2_{current_date}.xlsx'
-    # send_email(file_path)
+    
+    # Update the file path dynamically based on OS
+    file_path = f'{base_file_path}LinkedIn_jobs_today_{current_date}.xlsx'
+    
     df.to_excel(file_path, index=False)
     print(f"Data saved to '{file_path}'")
+    # Optionally call send_email function
+    # send_email(file_path)
 
 
 # LinkedIn Scraper setup
@@ -241,7 +258,7 @@ queries = [
                 experience=[ExperienceLevelFilters.ASSOCIATE, ExperienceLevelFilters.MID_SENIOR]
             )
         )
-    ),
+    )
 ]
 scraper.run(queries) 
 
@@ -291,6 +308,5 @@ Praveen LC[Data Engineer]
         print(f"Failed to send email: {e}")
 if __name__ == "__main__":
     current_date = datetime.now().strftime('%Y-%m-%d')
-    send_email(file_path = f'C:/Users/Intern/Desktop/linkedin_excel_/LinkedIn_jobs_today_2_{current_date}.xlsx')
-
+    send_email(file_path = f'{base_file_path}LinkedIn_jobs_today_{current_date}.xlsx')
 
