@@ -19,39 +19,38 @@ from email.mime.application import MIMEApplication
 from selenium import webdriver  
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 import platform
+
 current_os = platform.system()
 
-# Logging configuration
-logging.basicConfig(level=logging.INFO)
-
 chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--enable-logging")
+chrome_options.add_argument("--v=1")
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--disable-dev-shm-usage')
+
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+ 
 # Set WebDriver path and file paths based on the operating system
 if current_os == "Windows":
     webdriver_path = "C:/Users/Intern/Desktop/chromedriver-win64/chromedriver.exe"
     base_file_path = "C:/Users/Intern/Desktop/linkedin_excel_/"
 elif current_os == "Linux":
-    webdriver_path = "/usr/bin/chromedriver"
-    chrome_options.binary_location = "/snap/bin/chromium"
+    webdriver_path = "/usr/bin/google-driver"
     base_file_path = "/home/ajeeth/annular_projects/"
 else:
     raise Exception(f"Unsupported operating system: {current_os}")
 
-# Set up Chrome options
-# chrome_options = Options()
+# Set ChromeDriver Service
+service = Service(executable_path=webdriver_path)
 
-chrome_options.add_argument('--headless')
-chrome_options.add_argument('--no-sandbox')
-chrome_options.add_argument('--disable-dev-shm-usage')
-# options.add_argument('--remote-debugging-port=9222')
-# options.add_argument('--disable-gpu')
-# options.add_argument('--window-size=1920,1080')
-# options.add_argument('--start-maximized')
+# Initialize the Chrome WebDriver
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
-# Initialize the WebDriver with the correct path based on the OS
-driver = webdriver.Chrome(service=Service(webdriver_path), options=chrome_options)
-driver.get("https://www.google.com/login")
-driver.set_page_load_timeout(30)  # Increase page load timeout
+logging.basicConfig(filename='script_log.txt',level=logging.INFO,format='%(asctime)s:%(levelname)s:%(message)s')
+logging.info('Script started')
 
 # Store job data
 jobs_data = []
@@ -149,7 +148,8 @@ def scrape_contact_details(company_name):
         soup = BeautifulSoup(res.text, 'lxml')
         emails = get_email(soup.get_text())
         phones = get_phone(soup.get_text())
-        
+        logging.info(f"Initial emails found: {emails}")
+        logging.info(f"Initial phones found: {phones}")
         # Scrape contact links
         contact_links = find_contact_links(soup, search_result_url)
         for contact_url in contact_links:
@@ -162,7 +162,7 @@ def scrape_contact_details(company_name):
         emails = remove_duplicates(emails)
         phones = remove_duplicates(phones)
         scraped_companies[company_name] = {'emails': emails, 'phones': phones}
-
+        
         return emails, phones
     return None, None
 
@@ -215,6 +215,7 @@ def on_error(error):
 
 # Event handler for when scraping ends
 def on_end():
+    print(f"[ON_END]")
     logging.info("Scraping complete")
     current_date = datetime.now().strftime('%Y-%m-%d')
     df = pd.DataFrame(jobs_data)
@@ -231,13 +232,12 @@ def on_end():
 
 # LinkedIn Scraper setup
 scraper = LinkedinScraper(
-    chrome_executable_path=None,
-    chrome_binary_location=None,
-    chrome_options=None,
+    chrome_executable_path=webdriver_path,
     headless=True,
     max_workers=1,
     slow_mo=0.5,
-    page_load_timeout=40
+    page_load_timeout=100
+    
 )
 
 scraper.on(Events.DATA, on_data)
