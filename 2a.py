@@ -25,19 +25,21 @@ current_os = platform.system()
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
 
-
+chrome_options = Options()
 # Set WebDriver path and file paths based on the operating system
 if current_os == "Windows":
     webdriver_path = "C:/Users/Intern/Desktop/chromedriver-win64/chromedriver.exe"
     base_file_path = "C:/Users/Intern/Desktop/linkedin_excel_/"
 elif current_os == "Linux":
     webdriver_path = "/usr/bin/chromedriver"
+    chrome_options.binary_location = "/snap/bin/chromium"
     base_file_path = "/home/ajeeth/annular_projects/"
 else:
     raise Exception(f"Unsupported operating system: {current_os}")
 
 # Set up Chrome options
-chrome_options = Options()
+# chrome_options = Options()
+
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
