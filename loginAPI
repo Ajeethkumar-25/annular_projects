@@ -1,0 +1,111 @@
+from flask import Flask, request, jsonify
+import mysql.connector
+import re
+import bcrypt
+
+app = Flask(__name__)
+
+# MySQL Database Connection
+db = mysql.connector.connect(
+    host="127.0.0.1",  # Replace with your MySQL host
+    user="root",       # Replace with your MySQL username
+    password="root",   # Replace with your MySQL password
+    database="login"  # Replace with your MySQL database name
+)
+
+# Function to validate password
+def validate_password(password):
+    if len(password) <= 8:
+        return "Password must be more than 8 characters."
+    if not re.search(r'[A-Z]', password):
+        return "Password must contain at least one uppercase letter."
+    if not re.search(r'[a-z]', password):
+        return "Password must contain at least one lowercase letter."
+    if not re.search(r'[0-9]', password):
+        return "Password must contain at least one numeric digit."
+    if not re.search(r'[!@#$%^&*(),.?\":{}|<>]', password):
+        return "Password must contain at least one special character."
+    return None
+
+# Function to check if a user exists
+def find_user_by_email(email):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+    user = cursor.fetchone()
+    cursor.close()
+    return user
+
+# API route for user registration
+@app.route('/register', methods=['POST'])
+def register():
+    try:
+        email = request.json.get('email', None)
+        password = request.json.get('password', None)
+
+        if not email:
+            return jsonify({'error': 'Missing email'}), 400
+        if not password:
+            return jsonify({'error': 'Missing password'}), 400
+        
+        validation_error = validate_password(password)
+        if validation_error:
+            return jsonify({'error': validation_error}), 400
+
+        # Check if the user already exists
+        user = find_user_by_email(email)
+        if user:
+            return jsonify({'error': 'User Already Exists'}), 400
+
+        # Hash the password
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Insert the new user into the database
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO users (email, password_hash) VALUES (%s, %s)", (email, hashed_password))
+        db.commit()
+        cursor.close()
+
+        return jsonify({'message': f'Welcome! {email}'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API route for user login
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        email = request.json.get('email', None)
+        password = request.json.get('password', None)
+
+        if not email:
+            return jsonify({'error': 'Missing email'}), 400
+        if not password:
+            return jsonify({'error': 'Missing password'}), 400
+        
+        # Find the user by email
+        user = find_user_by_email(email)
+        if not user:
+            return jsonify({'error': 'User Not Found!'}), 404
+
+        # Verify the password
+        if bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+            return jsonify({'message': f'Logged in, Welcome {email}!'}), 200
+        else:
+            return jsonify({'error': 'Invalid Login Info!'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Main program to run the API
+if __name__ == "__main__":
+    # Create the 'users' table if it does not exist
+    cursor = db.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL
+        )
+    """)
+    db.commit()
+    cursor.close()
+
+    app.run(debug=True)
